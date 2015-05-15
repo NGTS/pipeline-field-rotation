@@ -14,10 +14,24 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import joblib
 
 logging.basicConfig(level='INFO', format='%(levelname)7s %(message)s')
 logger = logging.getLogger(__name__)
+
+try:
+    import joblib
+except ImportError:
+    logger.warning('Cannot find joblib, caching is unavailable')
+    use_joblib = False
+else:
+    use_joblib = True
+
+try:
+    import seaborn as sns
+except ImportError:
+    logger.warning('Cannot load seaborn')
+else:
+    sns.set()
 
 
 
@@ -59,12 +73,16 @@ def main(args):
 
     files = get_files(args.dirname)
 
-    if args.cache:
-        memory = joblib.Memory(cachedir='.tmp')
-    else:
-        memory = joblib.Memory(cachedir=None)
+    if use_joblib:
+        if args.cache:
+            memory = joblib.Memory(cachedir='.tmp')
+        else:
+            memory = joblib.Memory(cachedir=None)
 
-    fn = memory.cache(get_theta_timeseries)
+        fn = memory.cache(get_theta_timeseries)
+    else:
+        fn = get_theta_timeseries
+
     mjd, theta = fn(files, args.output)
 
     theta_range = theta.ptp()
