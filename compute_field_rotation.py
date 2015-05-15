@@ -54,8 +54,8 @@ def compute_stats(cd):
 
     # Compute theta
     parity = 1. if d >= 0. else -1.
-    A = parity * (cd2_1 - cd1_2)
-    T = parity * (cd1_1 + cd2_2)
+    A = parity * cd2_1 - cd1_2
+    T = parity * cd1_1 + cd2_2
     theta = -np.arctan2(A, T)
 
     scale = np.sqrt(np.linalg.det(cd)) * 3600.
