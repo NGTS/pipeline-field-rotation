@@ -16,19 +16,19 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import joblib
 
-logging.basicConfig(
-    level='INFO', format='%(levelname)7s %(message)s')
+logging.basicConfig(level='INFO', format='%(levelname)7s %(message)s')
 logger = logging.getLogger(__name__)
 
-memory = joblib.Memory(cachedir='.tmp')
 
 
 def get_files(dirname):
     return glob.glob('{}/proc*.fits'.format(dirname))
 
+
 def pixel_movement(distance, theta_degrees):
     theta_rad = np.radians(theta_degrees)
     return distance * theta_rad
+
 
 def extract_data(fname):
     cd = c.fetch_cd(fname)
@@ -36,7 +36,7 @@ def extract_data(fname):
     mjd = fits.getheader(fname)['mjd']
     return fname, mjd, stats.theta.value, stats.scale.value
 
-@memory.cache
+
 def get_theta_timeseries(files, output):
     output.write('fname,mjd,theta,scale\n')
     pool = mp.Pool()
@@ -51,13 +51,21 @@ def get_theta_timeseries(files, output):
     mjd, theta = [np.asarray(d) for d in [mjd, theta]]
     return mjd, theta
 
+
 def main(args):
     if args.verbose:
         logger.setLevel('DEBUG')
     logger.debug(args)
 
     files = get_files(args.dirname)
-    mjd, theta = get_theta_timeseries(files, args.output)
+
+    if args.cache:
+        memory = joblib.Memory(cachedir='.tmp')
+    else:
+        memory = joblib.Memory(cachedir=None)
+
+    fn = memory.cache(get_theta_timeseries)
+    mjd, theta = fn(files, args.output)
 
     theta_range = theta.ptp()
     theta_rad = np.radians(theta_range)
@@ -71,18 +79,24 @@ def main(args):
         axis.plot(mjd, theta, '.')
         axis.set_xlabel(r'MJD - {}'.format(mjd0))
         axis.set_ylabel(r'$\theta$')
-        axis.set_title('Rotation: {:.4f} degrees, pixel displacement @1024px: {:.3f} pix'.format(
-            theta_range, displacement_at_edge))
+        axis.set_title(
+            'Rotation: {:.4f} degrees, pixel displacement @1024px: {:.3f} pix'.format(
+                theta_range, displacement_at_edge))
         fig.tight_layout()
         fig.savefig(args.plot_to)
-
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('dirname')
-    parser.add_argument('-o', '--output', required=False, type=argparse.FileType('w'),
-            default='-')
+    parser.add_argument('--cache',
+                        action='store_true',
+                        default=False,
+                        help='Cache extracted information for files')
+    parser.add_argument('-o', '--output',
+                        required=False,
+                        type=argparse.FileType('w'),
+                        default='-')
     parser.add_argument('-p', '--plot-to', required=False)
     parser.add_argument('-v', '--verbose', action='store_true')
     main(parser.parse_args())
