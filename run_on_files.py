@@ -14,6 +14,10 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from astropy import wcs
+from astropy import coordinates as coord
+from astropy import units as u
+from astropy import time
 
 logging.basicConfig(level='INFO', format='%(levelname)7s %(message)s')
 logger = logging.getLogger(__name__)
@@ -43,21 +47,33 @@ def pixel_movement(distance, theta_degrees):
     theta_rad = np.radians(theta_degrees)
     return distance * theta_rad
 
+def compute_alt_az(header):
+    w = wcs.WCS(header)
+    site = coord.EarthLocation(lat=header['SITELAT'], lon=header['SITELONG'],
+            height=header['SITEALT'] * u.m)
+    t = time.Time(header['mjd'], format='mjd')
+    ra, dec = w.all_pix2world(1024, 1024, 1)
+    c = coord.SkyCoord(ra=ra * u.degree, dec=dec * u.degree)
+    altaz = c.transform_to(coord.AltAz(location=site, obstime=t))
+    return (altaz.alt.value, altaz.az.value)
+
 
 def extract_data(fname):
     cd = c.fetch_cd(fname)
     stats = c.compute_stats(cd)
-    mjd = fits.getheader(fname)['mjd']
-    return fname, mjd, stats.theta.value, stats.scale.value
+    header = fits.getheader(fname)
+    mjd = header['mjd']
+    alt, az = compute_alt_az(header)
+    return fname, mjd, alt, az, stats.theta.value, stats.scale.value
 
 
 def get_theta_timeseries(files, output):
-    output.write('fname,mjd,theta,scale\n')
+    output.write('fname,mjd,alt,az,theta,scale\n')
     pool = mp.Pool()
     mjd, theta = [], []
     for result in pool.imap(extract_data, files):
         mjd.append(result[1])
-        theta.append(result[2])
+        theta.append(result[4])
 
         out_str = ','.join(map(str, result))
         output.write(out_str + '\n')
