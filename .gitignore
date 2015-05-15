@@ -1,5 +1,6 @@
 venv
 *.png
+!images/*
 .tmp
 *.pyc
 *.csv
