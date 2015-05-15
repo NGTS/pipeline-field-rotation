@@ -4,3 +4,4 @@ venv
 *.pyc
 *.csv
 *.txt
+*.[oe][0-9]*
