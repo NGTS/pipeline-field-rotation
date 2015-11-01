@@ -52,7 +52,7 @@ def compute_stats(cd):
     [[cd1_1, cd1_2], [cd2_1, cd2_2]] = cd
     d = np.linalg.det(cd)
 
-    # Compute theta
+    # Compute theta
     parity = 1. if d >= 0. else -1.
     A = parity * cd2_1 - cd1_2
     T = parity * cd1_1 + cd2_2
@@ -60,7 +60,7 @@ def compute_stats(cd):
 
     scale = np.sqrt(np.linalg.det(cd)) * 3600.
 
-    # Compute shear
+    # Compute shear
     return stats(np.degrees(theta) * u.degree, scale * u.arcsec)
 
 
