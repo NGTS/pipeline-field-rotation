@@ -6,3 +6,4 @@ venv
 *.csv
 *.txt
 *.[oe][0-9]*
+*.fits
