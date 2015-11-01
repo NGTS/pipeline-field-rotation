@@ -60,7 +60,6 @@ def compute_stats(cd):
 
     scale = np.sqrt(np.linalg.det(cd)) * 3600.
 
-    # Compute shear
     return stats(np.degrees(theta) * u.degree, scale * u.arcsec)
 
 
